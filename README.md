@@ -1,6 +1,8 @@
 # ScamEar 👂🚩
 
-**A scam-call detector that runs 100% on your phone.** 📖 **Full guide (how it works, numbers, judge Q&A): [docs/GUIDE.md](docs/GUIDE.md)**
+**A scam-call detector that runs 100% on your phone.**
+
+**Try it:** **https://scamear.vercel.app** (Android Chrome; see [Try it yourself](#try-it-yourself))
 
 Put a suspicious caller on speaker near ScamEar and it transcribes the call live, spots scam tactics as they happen, and tells you to hang up. It works in airplane mode.
 
@@ -30,7 +32,8 @@ mic ─▶ Whisper-small (Web Worker, multi-threaded WASM)
 - Safety advice is **fixed text, never LLM-generated.** A small model once told the user to "follow the caller's instructions".
 - Legit code notices ("Your OTP is 482913. Do not share…", with no link or phone number) are treated as normal. Being *asked* for a code is what gets flagged.
 - Works on **any** phone: without WebGPU (e.g. Exynos/Xclipse GPUs), the rules, scam memory and classifier still run on the CPU.
-- Multi-threaded WASM needs cross-origin isolation, so the host must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` (set in `vite.config.js` for dev and preview).
+- Multi-threaded WASM needs cross-origin isolation, so the host must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` (set in `vite.config.js` for dev and preview, and in `vercel.json` for the live site).
+- The live transcript is shown **translated to English**: Whisper translates Tagalog and Taglish speech on the device, and everything after it scores the English text. In our tests, translating scored a Taglish scam call 100, against 46 when transcribing it in Tagalog.
 - Models are cached by the browser after the first load, and the app shell is cached by a service worker, so the app reloads and runs fully offline.
 
 ## Checking real phone calls
@@ -91,20 +94,23 @@ npm test          # rule-engine self-check
 npm run build && npm run preview
 ```
 
-Mic, camera and WebGPU require **HTTPS** on a phone, so deploy `dist/` to any static host (Vercel, Netlify, GitHub Pages).
+The mic and WebGPU need **HTTPS** on a phone. The live site is deployed on Vercel from `main`; `vercel.json` adds the cross-origin isolation headers.
 
-## Demo script (≈2 min)
+## Try it yourself
 
-1. **Before the demo, on WiFi:** open the site in Android Chrome, tap *Download & start*, and wait for 👂 *Ears* and 📚 *Scam memory* to show *Ready* (🧠 only loads on phones with WebGPU). Then add it to your home screen.
-2. **On stage:** turn on **airplane mode** and show it. Close and reopen the app: the badge shows *✈ Offline — 100% on-device*.
-3. Hand a judge the scam script below and ask them to read it out like a phone call. Tap **Start listening**.
-4. The flags pop in one by one, the phone vibrates, the screen pulses red, and the verdict reads **LIKELY SCAM — HANG UP**.
-5. **Clear**, then paste a fake "you won a prize" SMS into *Got a suspicious text?* It's flagged instantly, still offline.
-6. Close with: *"Nothing you just heard left this phone. Your calls stay private, it costs nothing per call, and it works with no signal."*
+1. **On WiFi:** open **https://scamear.vercel.app** in Chrome on an Android phone and tap *Download & start the on-device AI* (about 1 GB, one time only). Wait for 👂 *Ears* and 📚 *Scam memory* to show *Ready ✓*. 🧠 only loads on phones with WebGPU.
+2. **Turn on airplane mode** and reopen the app. The badge shows *✈ Offline — 100% on-device*, and everything below still works.
+3. **Call recording:** download [`demo/scam-call-taglish.m4a`](demo/scam-call-taglish.m4a) and [`demo/normal-call-taglish.m4a`](demo/normal-call-taglish.m4a) beforehand, then tap *Choose a call recording*. The scam call is flagged **LIKELY SCAM** and the scam type is named; the family call stays normal.
+4. **Live, on speaker:** tap *Start listening* and read the script below out loud like a phone call. Red flags appear a few seconds after the words, and the phone vibrates.
+5. **Text check:** paste a message into *Got a suspicious text?*
 
-### Scam script (print this for the judge)
-
-> "Hello, this is Mark from the fraud department of your bank. We detected suspicious activity and your account will be **frozen today**. To stop this, I need you to read me the **six-digit code we just sent** to your phone. Please do it **right now**, and **don't tell anyone**, this is confidential. If you can't, we can also secure your money if you **transfer it to a safe account**."
+> **Tagalog scam call:** "Magandang hapon po, taga-bangko po ako. May kahina-hinalang transaksyon sa account ninyo at ifi-freeze namin ngayong araw. Kailangan ko po yung OTP na pinadala namin sa cellphone ninyo. Bilisan po natin, at huwag po ninyong sasabihin kahit kanino."
+>
+> **English scam call:** "Hello, this is Mark from the fraud department of your bank. We detected suspicious activity and your account will be frozen today. To stop this, I need you to read me the six-digit code we just sent to your phone. Please do it right now, and don't tell anyone."
+>
+> **Taglish scam text:** Tita, si Mark po ito, bagong number ko. Naaksidente po ako, pwede po bang mag-send kayo ng 5k sa GCash ko? Wag nyo po sabihin kay mama.
+>
+> **Normal text:** Anak, kumain ka na?
 
 ## Known limits
 
