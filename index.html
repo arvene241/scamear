@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f0d">
+  <title>ScamEar</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg">
+  <style>
+    :root {
+      --bg: #0b0f0d; --card: #151b18; --line: #24302a; --text: #eef3ef; --muted: #8fa198;
+      --safe: #3ddc84; --warn: #ffb020; --scam: #ff3b3b; --accent: var(--safe);
+    }
+    body[data-level="warn"] { --accent: var(--warn); }
+    body[data-level="scam"] { --accent: var(--scam); animation: pulse 1s ease-in-out infinite alternate; }
+    @keyframes pulse { to { background: #2a0b0b; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, Roboto, sans-serif; }
+    main, header { max-width: 520px; margin: 0 auto; padding: 16px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
+    h1 span { color: var(--accent); }
+    #net { font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--line); border-radius: 99px; }
+    #net.off { color: var(--safe); border-color: var(--safe); }
+    .models { display: flex; gap: 8px; font-size: 13px; color: var(--muted); padding: 0 16px; max-width: 520px; margin: 0 auto; flex-wrap: wrap; }
+    .models div { flex: 1; min-width: 100px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+    .models b { color: var(--text); display: block; font-size: 12px; }
+    .ok { color: var(--safe); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-top: 14px; }
+    button { font: inherit; font-weight: 700; border: 0; border-radius: 14px; padding: 16px; width: 100%; cursor: pointer;
+      background: var(--accent); color: #06110b; }
+    button:disabled { opacity: .5; }
+    button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 10px; font-weight: 500; }
+    #listen.live { background: var(--scam); color: #fff; }
+    #gauge { --risk: 0; width: 210px; aspect-ratio: 1; margin: 6px auto 10px; border-radius: 50%; display: grid; place-items: center;
+      background: conic-gradient(var(--accent) calc(var(--risk) * 1%), var(--line) 0); transition: background .3s; }
+    #gauge > div { width: 82%; aspect-ratio: 1; border-radius: 50%; background: var(--bg); display: grid; place-content: center; text-align: center; }
+    #score { font-size: 64px; font-weight: 800; line-height: 1; color: var(--accent); }
+    #gauge small { color: var(--muted); }
+    #verdict { text-align: center; font-size: 22px; font-weight: 800; color: var(--accent); margin: 0 0 14px; }
+    #flags { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    #flags li { background: #2a1111; border: 1px solid #5a1c1c; border-radius: 10px; padding: 10px 12px; animation: pop .3s; }
+    #flags span { display: block; color: #ffc9c9; font-size: 14px; }
+    @keyframes pop { from { transform: scale(.95); opacity: 0; } }
+    #ai h3, .card h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    #ai.thinking h3::after { content: ' · thinking…'; }
+    #ai-match, #ai-reason { margin-bottom: 6px; }
+    #ai-reason:empty, #ai-match:empty { display: none; }
+    #ai-advice { font-weight: 700; color: var(--accent); }
+    #transcript { color: var(--muted); font-size: 14px; max-height: 160px; overflow-y: auto; white-space: pre-wrap; }
+    textarea { width: 100%; min-height: 90px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px; font: inherit; margin-bottom: 10px; }
+    #alert { background: var(--scam); color: #fff; padding: 10px; border-radius: 10px; margin-top: 10px; }
+    .row { display: flex; gap: 8px; margin-top: 14px; }
+    p.lede { color: var(--muted); margin: 0 0 14px; }
+    .hint { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+    .hint b { color: var(--text); font-weight: 600; }
+    #rec { margin-top: 12px; }
+    #rec-progress { width: 100%; height: 8px; accent-color: var(--accent); }
+    #rec-status { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px 16px 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Scam<span>Ear</span></h1>
+    <div id="net"></div>
+  </header>
+  <div class="models">
+    <div><b>👂 Ears · Whisper</b><span id="ears">Not loaded</span></div>
+    <div><b>📚 Scam memory · MiniLM</b><span id="memory">Not loaded</span></div>
+    <div><b>🧠 Reasoning · Qwen2.5</b><span id="brain">Not loaded</span></div>
+  </div>
+
+  <main>
+    <div id="alert" hidden></div>
+
+    <section id="setup" class="card">
+      <p class="lede">ScamEar listens to a suspicious call and warns you about scam tactics as they happen. Your audio never leaves this phone.</p>
+      <p class="lede">The first time, download the AI models over WiFi (about 1 GB). After that it works in airplane mode.</p>
+      <button id="load">Download &amp; start the on-device AI</button>
+    </section>
+
+    <section id="main" hidden>
+      <div class="card">
+        <div id="gauge"><div><span id="score">0</span><small>risk</small></div></div>
+        <p id="verdict"></p>
+        <button id="listen">● Start listening</button>
+      </div>
+
+      <ul id="flags"></ul>
+
+      <div id="ai" class="card" hidden>
+        <h3>🧠 On-device AI</h3>
+        <div id="ai-match"></div>
+        <div id="ai-reason"></div>
+        <div id="ai-advice"></div>
+      </div>
+
+      <div class="card">
+        <h3>Live transcript</h3>
+        <div id="transcript">—</div>
+      </div>
+
+      <div class="card">
+        <h3>Check a call recording</h3>
+        <p class="hint">Turn on <b>Phone → Settings → Record calls → Auto record calls</b>. After a suspicious call, choose the recording here, or share it to ScamEar from the call log.</p>
+        <button id="pick" type="button">Choose a call recording</button>
+        <input type="file" id="recording" accept="audio/*,.m4a,.amr,.3gp" hidden>
+        <div id="rec" hidden>
+          <progress id="rec-progress" max="1" value="0"></progress>
+          <p id="rec-status" role="status"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Got a suspicious text?</h3>
+        <textarea id="message" placeholder="Paste an SMS, Messenger or email message here…"></textarea>
+        <button id="check">Check message</button>
+      </div>
+
+      <div class="row"><button id="reset" class="ghost">Clear &amp; start over</button></div>
+    </section>
+  </main>
+  <footer>All AI runs on this device · Whisper (speech) · MiniLM (scam memory) · Qwen2.5 (reasoning, GPU phones) · nothing is uploaded</footer>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "scamear",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node src/rules.test.js"
+  },
+  "description": "On-device scam call detector that runs entirely in the phone browser",
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.1",
+    "@mlc-ai/web-llm": "^0.2.85"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  },
+  "type": "module",
+  "private": true
+}

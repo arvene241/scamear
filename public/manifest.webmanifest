@@ -1,0 +1,17 @@
+{
+  "name": "ScamEar",
+  "short_name": "ScamEar",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0f0d",
+  "theme_color": "#0b0f0d",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "share_target": {
+    "action": "./?share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [{ "name": "audio", "accept": ["audio/*", ".m4a", ".amr", ".3gp", ".mp3", ".wav"] }]
+    }
+  }
+}

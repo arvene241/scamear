@@ -1,0 +1,7 @@
+node_modules
+dist
+training/csv
+training/sms
+training/data.json
+training/emb.json
+training/ph-sms
