@@ -1,13 +1,16 @@
-import { pipeline } from '@huggingface/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 
 let asr;
 
 self.onmessage = async ({ data }) => {
   try {
     if (data.type === 'load') {
+      if (data.threads) env.backends.onnx.wasm.numThreads = data.threads;
       asr = await pipeline('automatic-speech-recognition', data.model, {
         device: 'wasm',
-        dtype: 'q8',
+        dtype: data.dtype,
+        // No memory arena: free working memory after each run instead of holding the peak (phones kill big tabs).
+        ...(data.lowmem && { session_options: { enableCpuMemArena: false, enableMemPattern: false, extra: { session: { disable_prepacking: '1' } } } }),
         progress_callback: p => p.status === 'progress' && self.postMessage({ type: 'progress', file: p.file, progress: p.progress }),
       });
       self.postMessage({ type: 'ready' });

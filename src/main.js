@@ -4,8 +4,15 @@ import asrWorkerUrl from './asr-worker.js?worker&url';
 import embedWorkerUrl from './embed-worker.js?worker&url';
 
 const params = new URLSearchParams(location.search);
-const ASR_MODEL = params.get('asr') || 'Xenova/whisper-small'; // multilingual: hears Tagalog/Taglish
+// Phones get whisper-base in low-memory mode: whisper-small grew a Galaxy S23 FE Chrome tab past 3.7 GB and
+// Android killed it, while base checks a 35 s call in ~31 s. Computers keep the more accurate whisper-small.
+const PHONE = /Android|iPhone|iPad/i.test(navigator.userAgent);
+const ASR_MODEL = params.get('asr') || (PHONE ? 'Xenova/whisper-base' : 'Xenova/whisper-small'); // multilingual: hears Tagalog/Taglish
 const LLM_SIZE = params.get('llm') || '1.5B';
+// Tuning knobs for low-memory phones: ?threads=N caps WASM threads, ?enc=q4 uses the smaller Whisper encoder.
+const THREADS = Number(params.get('threads')) || undefined;
+const LOWMEM = params.has('lowmem') ? params.get('lowmem') === '1' : PHONE; // no ONNX memory arena
+const ASR_DTYPE = params.get('enc') === 'q4' ? { encoder_model: 'q4', decoder_model_merged: 'q8' } : 'q8';
 const SAMPLE_RATE = 16000;
 
 const $ = id => document.getElementById(id);
@@ -95,8 +102,8 @@ function startModels() {
   if (modelsStarted) return;
   modelsStarted = true;
   $('load').disabled = true;
-  asr.postMessage({ type: 'load', model: ASR_MODEL });
-  embedder.postMessage({ type: 'load' });
+  asr.postMessage({ type: 'load', model: ASR_MODEL, dtype: ASR_DTYPE, threads: THREADS, lowmem: LOWMEM });
+  embedder.postMessage({ type: 'load', threads: THREADS, lowmem: LOWMEM });
   loadLlm();
 }
 $('load').onclick = startModels;

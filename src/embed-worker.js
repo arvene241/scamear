@@ -1,6 +1,6 @@
 // Sentence embeddings on the CPU (WASM), scored two ways: nearest known scam script (names the scam type)
 // and a classifier trained on 8.7k labeled calls/SMS (training/train.mjs). Works on any phone.
-import { pipeline } from '@huggingface/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 import { PATTERNS, matchPattern } from './patterns.js';
 import clf from './classifier.json';
 
@@ -16,9 +16,11 @@ const learnedRisk = v => {
 self.onmessage = async ({ data }) => {
   try {
     if (data.type === 'load') {
+      if (data.threads) env.backends.onnx.wasm.numThreads = data.threads;
       embed = await pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { // understands Tagalog + English
         device: 'wasm',
         dtype: 'q8',
+        ...(data.lowmem && { session_options: { enableCpuMemArena: false, enableMemPattern: false, extra: { session: { disable_prepacking: '1' } } } }),
         progress_callback: p => p.status === 'progress' && self.postMessage({ type: 'progress', file: p.file, progress: p.progress }),
       });
       patternVecs = await vecs(PATTERNS.map(p => p.text));
