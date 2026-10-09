@@ -146,6 +146,7 @@ async function startListening() {
   try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
   $('listen').textContent = '■ Stop listening';
   $('listen').classList.add('live');
+  render();
 }
 
 function stopListening() {
@@ -156,6 +157,7 @@ function stopListening() {
   buffered = []; bufferedLen = 0;
   $('listen').textContent = '● Start listening';
   $('listen').classList.remove('live');
+  render();
 }
 
 // Send ≥5s of audio to Whisper whenever it is idle (longer chunks = better Tagalog→English context).
@@ -298,7 +300,7 @@ function render() {
   document.body.dataset.level = state.transcript ? level : '';
   $('gauge').style.setProperty('--risk', risk);
   $('score').textContent = risk;
-  $('verdict').textContent = !state.transcript ? 'Listening for red flags…'
+  $('verdict').textContent = !state.transcript ? (stream?.active ? 'Listening for red flags…' : '')
     : level === 'scam' ? 'LIKELY SCAM — HANG UP' : level === 'warn' ? 'Suspicious — be careful' : 'Sounds normal';
 
   const fresh = flags.filter(f => !state.seenFlags.has(f.id));
@@ -335,7 +337,7 @@ function reset() {
   $('rec').hidden = true;
   render();
 }
-$('reset').onclick = reset;
+$('reset').onclick = () => { $('message').value = ''; reset(); };
 
 function alertBar(msg) {
   $('alert').textContent = msg;
